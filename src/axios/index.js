@@ -2,8 +2,8 @@
 import axios from 'axios';
 
 axios.defaults.timeout = 5000;
-axios.defaults.baseURL ='http://mall.qszhuang.com/';
-// axios.defaults.baseURL ='/api/';
+// axios.defaults.baseURL ='http://mall.qszhuang.com/';
+axios.defaults.baseURL ='/api/';
 //http request 拦截器
 axios.interceptors.request.use(
   config => {
@@ -88,7 +88,7 @@ export function fetch(url,params={}){
 
 export function patch(url,data = {}){
   return new Promise((resolve,reject) => {
-    axios.patch(url,data)
+    axios.post(url,data,{responseType:'arraybuffer'})
          .then(response => {
            resolve(response.data);
          },err => {
@@ -106,7 +106,7 @@ export function patch(url,data = {}){
 
 export function put(url,data = {}){
   return new Promise((resolve,reject) => {
-    axios.put(url,JSON.stringify(data))
+    axios.put(url,data)
          .then(response => {
            resolve(response.data);
          },err => {

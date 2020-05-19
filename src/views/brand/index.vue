@@ -7,22 +7,30 @@
       label-width="100px"
       class="demo-ruleForm"
     >
-      <el-form-item label="品牌名称" prop="name">
-        <el-input v-model="ruleForm.name"></el-input>
+      <el-form-item label="品牌名称">
+        <el-input v-model="ruleForm.brandName" disabled></el-input>
       </el-form-item>
-      <el-form-item label="品牌分类" prop="region">
-        <el-select v-model="ruleForm.region" placeholder="请选择品牌区域">
-          <el-option label="区域一" value="shanghai"></el-option>
-          <el-option label="区域二" value="beijing"></el-option>
+      <el-form-item label="折扣信息">
+        <el-input v-model="ruleForm.brandSubtitle"></el-input>
+      </el-form-item>
+      <el-form-item label="品牌分类">
+        <el-select v-model="ruleForm.brandClass" placeholder="请选择品牌区域">
+          <el-option
+            :label="item.classifyName"
+            :value="item.classifyId"
+            v-for="(item,index) in ruleForm.classList"
+            :key="index"
+          ></el-option>
         </el-select>
       </el-form-item>
-      <el-form-item label="品牌标签" prop="type">
-        <el-checkbox-group v-model="ruleForm.type">
-          <el-checkbox label="正品保证" name="type"></el-checkbox>
-          <el-checkbox label="免费送货" name="type"></el-checkbox>
-          <el-checkbox label="免费搬送" name="type"></el-checkbox>
-          <el-checkbox label="免费安装" name="type"></el-checkbox>
-          <el-checkbox label="网站补贴" name="type"></el-checkbox>
+      <el-form-item label="品牌标签">
+        <el-checkbox-group v-model="ruleForm.brandTagList">
+          <el-checkbox
+            :label="item.tagName"
+            name="type"
+            v-for="(item,index) in ruleForm.tagList"
+            :key="index"
+          ></el-checkbox>
         </el-checkbox-group>
       </el-form-item>
       <el-form-item label="营业时间" required>
@@ -31,7 +39,7 @@
             周一至周五
             <el-time-select
               placeholder="起始时间"
-              v-model="startTime"
+              v-model="ruleForm.brandWeektimeOpen"
               :picker-options="{
       start: '08:30',
       step: '00:15',
@@ -40,7 +48,7 @@
             ></el-time-select>
             <el-time-select
               placeholder="结束时间"
-              v-model="endTime"
+              v-model="ruleForm.brandWeektimeClose"
               :picker-options="{
       start: '08:30',
       step: '00:15',
@@ -53,7 +61,7 @@
             周六至周日
             <el-time-select
               placeholder="起始时间"
-              v-model="startTime"
+              v-model="ruleForm.brandWeekendtimeOpen"
               :picker-options="{
       start: '08:30',
       step: '00:15',
@@ -62,7 +70,7 @@
             ></el-time-select>
             <el-time-select
               placeholder="结束时间"
-              v-model="endTime"
+              v-model="ruleForm.brandWeekendtimeClose"
               :picker-options="{
       start: '08:30',
       step: '00:15',
@@ -73,43 +81,32 @@
           </el-row>
         </template>
       </el-form-item>
-      <el-form-item label="即时配送" prop="delivery">
-        <el-switch v-model="ruleForm.delivery"></el-switch>
-      </el-form-item>
 
       <el-form-item label="门店">
         <el-row>
-          <el-button type="primary" @click="addStore"> 添加门店</el-button>
+          <el-button type="primary" @click="addStore">添加门店</el-button>
         </el-row>
-        <el-row v-for="(item,index) in storeList" :key="index">
-          <Shop :data="item" />
+        <el-row v-for="(item,index) in ruleForm.brandStoreList" :key="index">
+          <Shop :shop="item" @editEnd="editEnd" />
         </el-row>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="submitForm('ruleForm')">立即创建</el-button>
-        <el-button @click="resetForm('ruleForm')">重置</el-button>
+        <el-button type="primary" @click="submitForm('ruleForm')">立即保存</el-button>
       </el-form-item>
     </el-form>
   </div>
 </template>
 <script>
 import Shop from "./childpage/shop";
+import qs from "qs";
 export default {
   components: {
     Shop
   },
+  filters: {},
   data() {
     return {
-      ruleForm: {
-        name: "",
-        region: "",
-        date1: "",
-        date2: "",
-        delivery: false,
-        type: [],
-        resource: "",
-        desc: ""
-      },
+      ruleForm: {},
       startTime: "",
       endTime: "",
       rules: {
@@ -149,26 +146,104 @@ export default {
         ],
         desc: [{ required: true, message: "请填写品牌形式", trigger: "blur" }]
       },
-      storeList:[]
+      storeList: []
     };
   },
+  mounted() {
+    this.getBrandList();
+  },
   methods: {
-    submitForm(formName) {
-      this.$refs[formName].validate(valid => {
-        if (valid) {
-          alert("submit!");
-        } else {
-          console.log("error submit!!");
-          return false;
-        }
+    editEnd(data) {
+      this.getBrandList();
+    },
+    getBrandList() {
+      this.$fetch("/merchant/brandManager/initial").then(res => {
+        res.data.brandTagList = JSON.parse(res.data.brandTagList);
+        this.ruleForm = res.data;
+        this.ruleForm.brandTagList.forEach((item, index) => {
+          this.ruleForm.brandTagList[index] = this.tagName(item);
+        });
       });
     },
-    resetForm(formName) {
-      this.$refs[formName].resetFields();
+    submitForm(formName) {
+      let data = {};
+      // Object.assign(data,this.ruleForm);
+      data = JSON.parse(JSON.stringify(this.ruleForm));
+      data.brandTagList.forEach((item, index) => {
+        data.brandTagList[index] = this.returnTag(item);
+      });
+      data.brandTagList = JSON.stringify(data.brandTagList);
+      data.brandTag=data.brandTagList;
+      delete data.classList;
+      delete data.tagList;
+      delete data.brandStoreList;
+      delete data.brandImage;
+      this.$post("merchant/brandManager/update", qs.stringify(data)).then(
+        res => {
+          if(res.code==0){
+            this.$message.succeess('保存成功');
+          }
+        }
+      );
     },
-    addStore(){
-      let shop={user:'',region:'',area:''};
-      this.storeList.push(shop)
+    addStore() {
+      let shop = {
+        brandID: this.$store.state.brandId,
+        brandStoreName: "",
+        brandStorePhone: "",
+        brandStoreProvice: "",
+        brandStoreCity: "",
+        brandStoreArea: "",
+        brandStoreDescAddr: ""
+      };
+      this.$post("merchant/brandManager/store", qs.stringify(shop)).then(
+        res => {
+          if (res.code == 0) {
+            this.$message.success("新增成功");
+            this.getBrandList();
+          }
+        }
+      );
+    },
+    //转换标签名
+    tagName(id) {
+      switch (id) {
+        case 1:
+          return "正品保证";
+          break;
+        case 2:
+          return "免费送货";
+          break;
+        case 3:
+          return "免费搬楼";
+          break;
+        case 4:
+          return "免费安装";
+          break;
+        case 5:
+          return "网站补贴";
+          break;
+      }
+    },
+    //逆向转换标签
+    returnTag(name) {
+      switch (name) {
+        case "正品保证":
+          return 1;
+          break;
+        case "免费送货":
+          return 2;
+          break;
+        case "免费搬楼":
+          return 3;
+          break;
+        case "免费安装":
+          return 4;
+          break;
+        case "网站补贴":
+          return 5;
+          break;
+      }
     }
   }
 };

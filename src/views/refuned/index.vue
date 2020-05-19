@@ -33,36 +33,77 @@
             </el-popconfirm>
             <el-button @click="handleReject(scope.row)" type="danger">不同意</el-button>
           </div>
-          <div v-else>
-            {{scope.row.merchantStatus==1?'已同意':'不同意'}}
-          </div>
+          <div v-else>{{scope.row.merchantStatus==1?'已同意':'不同意'}}</div>
         </template>
       </el-table-column>
     </el-table>
     <el-pagination background layout="prev, pager, next" :total="1000" @current-change="pageChange"></el-pagination>
+
+    <el-dialog title="支付二维码" :visible.sync="dialogVisible" width="30%" :before-close="handleClose">
+      <div id="qrcode"></div>
+      <!-- <span slot="footer" class="dialog-footer">
+        <el-button @click="dialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+      </span> -->
+    </el-dialog>
   </div>
 </template>
 <script>
 import qs from "qs";
+import QRCode from "qrcodejs2";
 export default {
+  components: { QRCode },
   data() {
     return {
-      tableData: []
+      tableData: [],
+      dialogVisible: false,
+      payUrl: "",
+      merchantOrderNo: "",
+      askClose:false
     };
   },
   mounted() {
     this.getOrderList(1);
   },
   methods: {
+    qrcode() {
+      let that = this;
+      let qrcode = new QRCode("qrcode", {
+        width: 256,
+        height: 256, // 高度
+        text: this.payUrl // 二维码内容
+        // render: 'canvas' ,   // 设置渲染方式（有两种方式 table和canvas，默认是canvas）
+        // background: '#f0f',   // 背景色
+        // foreground: '#ff0'    // 前景色
+      });
+    },
+    handleClose(done) {
+      this.$confirm("确认关闭？")
+        .then(_ => {
+          this.askClose=true;
+          done();
+        })
+        .catch(_ => {});
+    },
     handleAgree(row) {
+      this.dialogVisible = true;
       this.$post(
-        "/merchant/order/upRefund",
-        qs.stringify({ refundId: row.refundId })
+        "/pay/merchantWxpayPC",
+        qs.stringify({
+          brandId: row.brandId,
+          goosId: row.productID,
+          goodsNum: row.orderProductNum,
+          userId: row.userID,
+          orderRemarks: "",
+          userOrderNo: row.orderNo
+        })
       ).then(res => {
-        if (res.msg == "OK") {
-          this.$message.success("退款成功");
-          this.getOrderList(1);
-        }
+        this.merchantOrderNo = res.data.merchantOrderNo;
+        this.payUrl = res.data.code_url;
+        this.$nextTick(function() {
+          this.qrcode();
+        });
+        this.intervalAsk()
       });
     },
     getOrderList(page) {
@@ -101,6 +142,23 @@ export default {
             message: "取消输入"
           });
         });
+    },
+    intervalAsk(){
+      let timer=null;
+      let _this=this;
+      timer=setInterval(function(){
+        _this.$fetch("pay/merchantPCDoubt",{merchantOrder: _this.merchantOrderNo }).then(res=>{
+          if(res.status==200||_this.askClose){
+            clearInterval(timer);
+            _this.$message.success("支付成功");
+            _this.dialogVisible=false;
+            _this.getOrderList();
+          }
+        })
+      },2000)
+    },
+    destroyed() {
+      this.askClose=true; //离开路由之后断开websocket连接
     }
   }
 };

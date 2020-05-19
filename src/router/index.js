@@ -48,6 +48,11 @@ const routes = [{
         component: () => import('../views/edit'),
       },
       {
+        path: 'supply',
+        name: 'supply',
+        component: () => import('../views/supply'),
+      },
+      {
         path: 'homeImg',
         name: 'homeImg',
         component: () => import('../views/homeImg'),

@@ -1,5 +1,6 @@
 <template>
   <div>
+    <h2>基本信息</h2>
     <el-form
       :model="ruleForm"
       :rules="rules"
@@ -7,101 +8,99 @@
       label-width="100px"
       class="demo-ruleForm"
     >
-      <el-form-item label="商品名称" prop="name">
-        <el-input v-model="ruleForm.name"></el-input>
+      <el-form-item label="商品图片">
+        <el-upload
+          :action="action"
+          list-type="picture-card"
+          :on-change="handleChange"
+          :file-list="fileList"
+          :on-remove="handleRemove"
+        >
+          <i class="el-icon-plus"></i>
+        </el-upload>
+        <el-dialog :visible.sync="dialogVisible">
+          <img width="100%" :src="fileList" alt />
+        </el-dialog>
       </el-form-item>
-      <el-form-item label="商品标签" prop="region">
-        <el-input v-model="ruleForm.name"></el-input>
+      <el-form-item label="商品名称" prop="productTitle">
+        <el-input v-model="ruleForm.productTitle"></el-input>
+      </el-form-item>
+      <el-form-item label="商品标签" prop="productLittleTag">
+        <el-input v-model="ruleForm.productLittleTag"></el-input>
       </el-form-item>
       <el-form-item label="商品卖点" required>
-        <el-input v-model="ruleForm.name"></el-input>
+        <el-input v-model="ruleForm.productSubtitle"></el-input>
       </el-form-item>
-      <el-form-item label="订金" prop="delivery">
-     <el-input v-model="ruleForm.name"></el-input>
+      <el-form-item label="订金" prop="productDeposit">
+        <el-input v-model="ruleForm.productDeposit"></el-input>
       </el-form-item>
-      <el-form-item label="团购价" prop="type">
-      <el-input v-model="ruleForm.name"></el-input>
+      <el-form-item label="团购价" prop="productPrice">
+        <el-input v-model="ruleForm.productPrice"></el-input>
       </el-form-item>
-      <el-form-item label="市场价" prop="resource">
-         <el-input v-model="ruleForm.name"></el-input>
+      <el-form-item label="单位" prop="productDepositSubfix">
+        <el-input v-model="ruleForm.productDepositSubfix"></el-input>
       </el-form-item>
-      <el-form-item label="商品形式" prop="desc">
-        <el-input type="textarea" v-model="ruleForm.desc"></el-input>
+      <el-form-item label="市场价" prop="productComPrice">
+        <el-input v-model="ruleForm.productComPrice"></el-input>
+      </el-form-item>
+      <el-form-item label="砍价折扣" prop="productExplain">
+        <el-input type="textarea" v-model="ruleForm.productExplain"></el-input>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="submitForm('ruleForm')">立即创建</el-button>
-        <el-button @click="resetForm('ruleForm')">重置</el-button>
+        <el-button type="primary" @click="submitForm('ruleForm')">确认修改</el-button>
       </el-form-item>
     </el-form>
   </div>
 </template>
 <script>
 export default {
+  props: ["goodsItem"],
+  watch: {
+    goodsItem(val, oldVal) {
+      if (val !== oldVal) {
+        this.ruleForm = val;
+        let img = [];
+        // this.action = "/api/merchant/products/image/upload/" + val.productId;
+           this.action = "merchant/products/image/upload/" + val.productId;
+        val.productImage.map((item, index) => {
+          img.push({ name: index, url: item });
+        });
+        this.fileList = img;
+      }
+    }
+  },
   data() {
     return {
-      ruleForm: {
-        name: "",
-        region: "",
-        date1: "",
-        date2: "",
-        delivery: false,
-        type: [],
-        resource: "",
-        desc: ""
-      },
-      rules: {
-        name: [
-          { required: true, message: "请输入商品名称", trigger: "blur" },
-          { min: 3, max: 5, message: "长度在 3 到 5 个字符", trigger: "blur" }
-        ],
-        region: [
-          { required: true, message: "请选择商品区域", trigger: "change" }
-        ],
-        date1: [
-          {
-            type: "date",
-            required: true,
-            message: "请选择日期",
-            trigger: "change"
-          }
-        ],
-        date2: [
-          {
-            type: "date",
-            required: true,
-            message: "请选择时间",
-            trigger: "change"
-          }
-        ],
-        type: [
-          {
-            type: "array",
-            required: true,
-            message: "请至少选择一个商品性质",
-            trigger: "change"
-          }
-        ],
-        resource: [
-          { required: true, message: "请选择商品资源", trigger: "change" }
-        ],
-        desc: [{ required: true, message: "请填写商品形式", trigger: "blur" }]
-      }
+      action: "",
+      ruleForm: {},
+      rules: {},
+      fileList: [],
+      dialogVisible: false
     };
   },
   methods: {
     submitForm(formName) {
-      this.$refs[formName].validate(valid => {
-        if (valid) {
-          alert("submit!");
+      this.$emit("handleGoodHeader", this.ruleForm);
+    },
 
-        } else {
-          console.log("error submit!!");
-          return false;
+    //图片管理
+    handleChange(file, fileList) {
+      // this.fileList = fileList.slice(-3);
+      let img = [];
+      fileList.map(item => {
+        img.push(item.url);
+      });
+      this.ruleForm.productImage = img;
+    },
+    handleRemove(file, fileList) {
+      this.$fetch(
+        "/merchant/products/image/delete/" + this.ruleForm.productId,
+        { fileName: file.url }
+      ).then(res => {
+        if (res.status == 200) {
+          this.$message.success("删除成功");
         }
       });
-    },
-    resetForm(formName) {
-      this.$refs[formName].resetFields();
     }
   }
 };

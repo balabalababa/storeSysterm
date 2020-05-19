@@ -12,16 +12,18 @@
           ></el-date-picker>
         </el-form-item>
         <el-form-item label="订单状态">
-          <el-select v-model="form.region" placeholder="请选择状态">
-             <el-option label="退款中" value="2"></el-option>
-            <el-option label="退款中" value="2"></el-option>
-            <el-option label="退款取消" value="3"></el-option>
-            <el-option label="退款成功" value="4"></el-option>
+          <el-select v-model="form.orderStatus" placeholder="请选择状态">
+            <el-option
+              v-for="(item,index) in orderStatus"
+              :key="index"
+              :label="item.label"
+              :value="item.value"
+            ></el-option>
           </el-select>
         </el-form-item>
       </el-form>
       <el-button type="primary" @click="onSubmit">立即创建</el-button>
-      <el-button>取消</el-button>
+      <el-button type="success" @click="getOut">导出</el-button>
     </el-card>
     <el-menu
       :default-active="activeIndex"
@@ -56,7 +58,9 @@
       </el-table-column>
       <el-table-column prop="orderCreateTime" label="下单时间" width="120"></el-table-column>
       <el-table-column prop="orderStopDate" label="有效时间" width="300"></el-table-column>
-      <el-table-column prop="orderStatus" label="订单状态" width="120"></el-table-column>
+      <el-table-column prop="orderStatus" label="订单状态" width="120">
+        <template slot-scope="scoped">{{scoped.row.orderStatus|status}}</template>
+      </el-table-column>
       <el-table-column label="操作" width="100">
         <template slot-scope="scope">
           <el-button @click="handleClick(scope.row)" type="text" size="small">查看</el-button>
@@ -65,72 +69,165 @@
       </el-table-column>
     </el-table>
 
-    <el-pagination
-  background
-  layout="prev, pager, next"
-  :total="1000"
-  @current-change="pageChange">
-</el-pagination>
+    <el-pagination background layout="prev, pager, next" :total="1000" @current-change="pageChange"></el-pagination>
   </div>
 </template>
 <script>
-import moment from 'moment'
+import moment from "moment";
+import qs from "qs";
 export default {
   data() {
     return {
       form: {
         region: "",
-        during:''
+        orderStatus: ""
       },
       navList: [
         { name: "全部订单", num: "", index: "1" },
         { name: "待支付", num: "", index: "2" },
         { name: "已支付", num: "", index: "3" },
-        { name: "待评价", num: "", index: "4" },
-        { name: "已评价", num: "", index: "5" },
-        { name: "售后", num: "", index: "6" }
+        { name: "售后", num: "", index: "4" }
       ],
       activeIndex: "1",
-      tableData: []
+      tableData: [],
+      orderStatus: [
+        { label: "未付款", value: -2 },
+        { label: "已付款", value: -1 },
+        { label: "已完成", value: 1 },
+        { label: "退款中", value: 2 },
+        { label: "退款成功", value: 3 },
+        { label: "待转单", value: 8 }
+      ],
+      searchList: {
+        createStartDate: "",
+        createStopDate: "",
+        orderStatus: ""
+      }
     };
   },
   mounted() {
     this.getOrderList(1);
   },
+  filters: {
+    status: function(value) {
+      switch (value) {
+        case "0":
+          return "关单";
+          break;
+        case "-2":
+          return "未付款";
+          break;
+        case "-1":
+          return "已付款";
+          break;
+        case "1":
+          return "已完成";
+          break;
+        case "2":
+          return "退款中";
+          break;
+        case "3":
+          return "退款成功";
+          break;
+        case "8":
+          return "待转单";
+          break;
+      }
+    }
+  },
   methods: {
+    //导出
+    getOut() {
+      this.$patch(
+        "/merchant/order/selectOrderBySomeDateDownlode",
+        qs.stringify(this.searchList)
+      ).then(_res => {
+        const blob = new Blob([_res], {
+          type: "application/vnd.ms-excel;"
+        });
+        const a = document.createElement("a");
+        // 生成文件路径
+        let href = window.URL.createObjectURL(blob);
+        a.href = href;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(href);
+      });
+   
+    },
     //获取订单列表
     getOrderList(page) {
-      this.$fetch("/merchant/order/refund",{page:page,limit:20}).then(res => {
+      this.$fetch("/merchant/order", { page: page, limit: 20 }).then(res => {
         this.tableData = res.data;
       });
     },
     onSubmit() {
-      this.$refs.form.model.during.map((item,index)=>{
-        this.$refs.form.model.during[index]=moment(Date.parse(item)).format('YYYY/MM/DD');
-      })
-        console.log(this.$refs.form.model)
+      let data = this.$refs.form.model;
+      if (data.during) {
+        data.during.map((item, index) => {
+          data.during[index] = moment(Date.parse(item)).format("YYYY-MM-DD");
+        });
+        this.searchList.createStartDate = data.during[0];
+        this.searchList.createStopDate = data.during[1];
+      }
+
+      this.searchList.orderStatus = data.orderStatus;
+      this.getNavList();
     },
     handleSelect(key, keyPath) {
-      console.log(key, keyPath);
+      let _this = this;
+      switch (key) {
+        case "2":
+          _this.searchList.orderStatus = -2;
+          break;
+        case "3":
+          _this.searchList.orderStatus = 2;
+          break;
+        case "4":
+          _this.searchList.orderStatus = 1;
+          break;
+      }
+      this.getNavList();
     },
     handleClick(row) {
       console.log(row);
     },
-    pageChange(cur){
-      console.log(cur)
-      this.getOrderList(cur)
+    pageChange(cur) {
+      this.getAllStatus(cur);
+    },
+    //获取全部同一状态的数据
+    getAllStatus(page) {
+      this.searchList.status = status;
+      this.$fetch("/merchant/order/selectBySomeDate", {
+        ...this.searchList,
+        page: page,
+        limit: 20
+      }).then(res => {
+        this.tableData = res.data;
+      });
+    },
+    //查询全部导航栏
+    getNavList() {
+      this.$fetch("/merchant/order/selectBySomeDate", {
+        ...this.searchList,
+        page: 1,
+        limit: 20
+      }).then(res => {
+        this.tableData = res.data;
+      });
     }
   }
 };
 </script>
 <style lang="less" scoped>
-.good_wrap{
+.good_wrap {
   display: flex;
-  .good_img{
-      width: 100px;
-      height: 100px;
-      margin-right:10px;
-    img{
+  .good_img {
+    width: 100px;
+    height: 100px;
+    margin-right: 10px;
+    img {
       width: 100%;
       height: 100%;
     }

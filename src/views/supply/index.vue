@@ -72,7 +72,7 @@ export default {
   },
   methods: {
     handleAdd() {
-      this.$fetch("/merchant/products/add").then(res => {
+      this.$fetch("/merchant/products/add",{flag : 1}).then(res => {
         if (res.status == 200) {
           this.$message.success("添加成功");
           this.getProductList();
@@ -101,7 +101,7 @@ export default {
     },
     getProductList(page) {
       this.$fetch("merchant/products/", {
-        flag: 0,
+        flag: 1,
         page: page,
         limit: 20
       }).then(res => {

@@ -1,87 +1,82 @@
 <template>
-    <div>
-        <el-table
-    ref="multipleTable"
-    :data="tableData"
-    tooltip-effect="dark"
-    style="width: 100%"
-    @selection-change="handleSelectionChange">
-    <el-table-column
-      type="selection"
-      width="55">
-    </el-table-column>
-    <el-table-column
-      label="日期"
-      width="120">
-      <template slot-scope="scope">{{ scope.row.date }}</template>
-    </el-table-column>
-    <el-table-column
-      prop="name"
-      label="姓名"
-      width="120">
-    </el-table-column>
-    <el-table-column
-      prop="address"
-      label="地址"
-      show-overflow-tooltip>
-    </el-table-column>
-  </el-table>
-  <div style="margin-top: 20px">
-    <el-button @click="toggleSelection([tableData[1], tableData[2]])">切换第二、第三行的选中状态</el-button>
-    <el-button @click="toggleSelection()">取消选择</el-button>
+  <div>
+    <h2>服务保障</h2>
+
+    <el-checkbox-group v-model=" checkedCities" @change="changeList">
+      <el-checkbox v-for="(item,index) in serves" :key="index" :label="JSON.stringify(item)">
+        <div class="serveItem" v-for="(info,sindex) in item " :key="sindex">
+          <div class="serveTitle">{{sindex}}</div>
+          <div class="servedirection">{{info}}</div>
+        </div>
+      </el-checkbox>
+    </el-checkbox-group>
   </div>
-    </div>
 </template>
 <script>
 export default {
-      data() {
-      return {
-        tableData: [{
-          date: '2016-05-03',
-          name: '王小虎',
-          address: '上海市普陀区金沙江路 1518 弄'
-        }, {
-          date: '2016-05-02',
-          name: '王小虎',
-          address: '上海市普陀区金沙江路 1518 弄'
-        }, {
-          date: '2016-05-04',
-          name: '王小虎',
-          address: '上海市普陀区金沙江路 1518 弄'
-        }, {
-          date: '2016-05-01',
-          name: '王小虎',
-          address: '上海市普陀区金沙江路 1518 弄'
-        }, {
-          date: '2016-05-08',
-          name: '王小虎',
-          address: '上海市普陀区金沙江路 1518 弄'
-        }, {
-          date: '2016-05-06',
-          name: '王小虎',
-          address: '上海市普陀区金沙江路 1518 弄'
-        }, {
-          date: '2016-05-07',
-          name: '王小虎',
-          address: '上海市普陀区金沙江路 1518 弄'
-        }],
-        multipleSelection: []
-      }
-    },
-
-    methods: {
-      toggleSelection(rows) {
-        if (rows) {
-          rows.forEach(row => {
-            this.$refs.multipleTable.toggleRowSelection(row);
-          });
-        } else {
-          this.$refs.multipleTable.clearSelection();
+  props: ["productTag"],
+  watch: {
+    productTag(val, oldVal) {
+      if (val !== oldVal) {
+        val = JSON.parse(val);
+        var arr = [];
+        for (let i in val) {
+          let o = {};
+          o[i] = val[i];
+          arr.push(JSON.stringify(o));
         }
-      },
-      handleSelectionChange(val) {
-        this.multipleSelection = val;
+        val = arr;
+        this.checkedCities = JSON.parse(JSON.stringify(val));
       }
     }
-}
+  },
+  data() {
+    return {
+      checkedCities: [],
+      serves: [
+        { 正品保证: "该商品由厂商或正规代理提供，保证正品" },
+        {
+          七天无理由退换:
+            "线上下单，商家未产生上门测量等服务前，可享受七天无理由退订"
+        },
+        { 极速退款: "极速退款是为VIP会员提供的退款流程的专享特权" },
+        {
+          免费送货入户:
+            "供应商应按照本订单提供产品或服务，如有违反轻松装有权追究供应商的违约责任"
+        },
+        { 免费预约安装: "该订单享受轻松装平台售后服务跟踪与协调服务" }
+      ]
+    };
+  },
+  mounted() {},
+  methods: {
+    changeList(data) {
+      let serve = {};
+      data.map(item => {
+        let surItem = JSON.parse(item);
+        serve[Object.keys(surItem)[0]] = Object.values(surItem)[0];
+      });
+      this.$emit("handleServe", JSON.stringify(serve));
+    }
+  }
+};
 </script>
+<style lang="less" scoped>
+.el-checkbox {
+  display: block;
+}
+.serveItem {
+  display: flex;
+  margin-bottom: 10px;
+
+  border: 1px solid #ccc;
+  .serveTitle {
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-right: 1px solid #ccc;
+  }
+  .servedirection {
+    padding: 10px;
+  }
+}
+</style>

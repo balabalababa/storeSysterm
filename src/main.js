@@ -8,8 +8,9 @@ import {post,fetch,patch,put} from './axios'
 //定义全局变量
 Vue.prototype.$post=post;
 Vue.prototype.$fetch=fetch;
+Vue.prototype.$patch=patch;
 // Vue.prototype.$patch=patch;
-// Vue.prototype.$put=put;
+Vue.prototype.$put=put;
 Vue.config.productionTip = false
 
 new Vue({
