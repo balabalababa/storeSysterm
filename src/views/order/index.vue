@@ -22,7 +22,7 @@
           </el-select>
         </el-form-item>
       </el-form>
-      <el-button type="primary" @click="onSubmit">立即创建</el-button>
+      <el-button type="primary" @click="onSubmit">立即搜索</el-button>
       <el-button type="success" @click="getOut">导出</el-button>
     </el-card>
     <el-menu

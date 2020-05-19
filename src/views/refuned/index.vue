@@ -8,7 +8,7 @@
               <img :src="scoped.row.productTitleImg" alt="商品图片" />
             </div>
             <div class="good_title">
-              <p>{{scoped.row.productSubtitle}}</p>
+              <p>{{scoped.row.productTitle}}</p>
               <!-- <p>编号：{{scoped.row.orderNo}}</p> -->
             </div>
           </div>
